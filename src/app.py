@@ -2,17 +2,23 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
 import utils
+import threading
 import cv2
+from server import Server
 
 class Application(tk.Tk):
     def __init__(self):
         """ Initializes our our application"""
         super().__init__()
+        self.selected_cam = tk.StringVar()
+        self.channels = utils.find_cameras()
+        self.HOST = "127.0.0.1"  # Standard loopback interface address (localhost)
+        self.PORT = 8000 # Port to listen on (non-privileged ports are > 1023)
+        self.image_path = ""
+        self.server = Server(self.HOST,self.PORT)
         self.geometry("400x400")
         self.resizable(False, False)
         self.title('Webcam test')
-        self.selected_cam = tk.StringVar()
-        self.channels = utils.find_cameras()
         self.create_widgets()
 
     def create_widgets(self):
@@ -45,6 +51,14 @@ class Application(tk.Tk):
         start_server_button.pack(ipadx=5, ipady=5, expand=True)
 
 
+    def save_image(self):
+        if self.selected_cam.get() == "":
+            return
+        cap_tmp = cv2.VideoCapture(self.channels[self.selected_cam.get()])
+        _, frame = cap_tmp.read()
+        cv2.imwrite("image.jpg", frame)
+        # When everything done, release the capture
+        cap_tmp.release()
 
     # bind the selected value changes
     def show_preview(self):
@@ -55,7 +69,8 @@ class Application(tk.Tk):
         utils.show_frames(cap)
 
     def start_server(self):
-        print("button working")
+        thread = threading.Thread(target=self.server.start,args=(self.selected_cam,self.channels))
+        thread.start()
 
     def stop_server(self):
-        pass
+        self.server.close()

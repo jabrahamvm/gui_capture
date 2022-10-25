@@ -71,3 +71,12 @@ def show_frames(cap):
     # When everything done, release the capture
     cap.release()
     cv2.destroyAllWindows()
+
+def capture_image(camera, channels):
+    if camera.get() == "":
+            return
+    cap_tmp = cv2.VideoCapture(channels[camera.get()])
+    _, frame = cap_tmp.read()
+    cv2.imwrite("image.jpg", frame)
+    # When everything done, release the capture
+    cap_tmp.release()
