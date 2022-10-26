@@ -1,54 +1,113 @@
+from http import server
 import tkinter as tk
-from tkinter import ttk
+from tkinter import OFF, ON, ttk
 from tkinter import filedialog
 import utils
 import threading
 import cv2
 from server import Server
 
+SERVER_OFF = "The server is off..."
+SERVER_ON = "The server is listening at "
+SERVER_CONNECTED = " has connected to the server, waiting for commands..."
+
 class Application(tk.Tk):
     def __init__(self):
-        """ Initializes our our application"""
+        """ Initializes our application"""
         super().__init__()
         self.selected_cam = tk.StringVar()
         self.channels = utils.find_cameras()
         self.HOST = "127.0.0.1"  # Standard loopback interface address (localhost)
-        self.PORT = 8000 # Port to listen on (non-privileged ports are > 1023)
+        self.PORT = 8000         # Port to listen on (non-privileged ports are > 1023)
         self.image_path = ""
         self.server = Server(self.HOST,self.PORT)
+        self.server_on = False
+        self.server_status_text = tk.StringVar()
         self.geometry("400x400")
         self.resizable(False, False)
         self.title('Webcam test')
         self.create_widgets()
 
-    def create_widgets(self):
+    def image_widgets(self):
+        image_frame = tk.Frame(self,width=200, height=200,bg="blue")
+        image_frame.pack(fill=tk.BOTH, padx=10,pady=10)
+
         # Combobox label
-        cb_label = ttk.Label(text="Please select a webcam:")
-        cb_label.pack(fill=tk.X, padx=5, pady=5)
+        cb_frame = tk.Frame(image_frame, width=200)
+        cb_frame.pack(fill=tk.BOTH, padx=5,pady=3)
+        cb_label = ttk.Label(cb_frame,text="Please select a webcam:")
+        cb_label.pack(padx=5, pady=5,side=tk.LEFT)
         # Combobox displaying available cameras
-        cam_cb = ttk.Combobox(self, textvariable=self.selected_cam)
-        cam_cb.place(x=24, y=50)
-        cam_cb.configure(width=55)
-        cb_label.place(x=24, y=27)
+        cam_cb = ttk.Combobox(cb_frame, textvariable=self.selected_cam)
+        cam_cb.pack(fill=tk.X,padx=5, pady=5,side=tk.LEFT)
+        #cb_label.place(x=24, y=27)
         # get values for the combobox
         cam_cb['values'] = list(self.channels.keys())
 
         # prevent typing a value
         cam_cb['state'] = 'readonly'
 
+        ib_frame = tk.Frame(image_frame, width=200)
+        ib_frame.pack(fill=tk.BOTH, padx=5,pady=3)
         # Button to select where you want to save the image
-        browse_btn = ttk.Button(text='Browse folder', command=lambda : filedialog.askdirectory())
-        browse_btn.pack(ipadx=5, ipady=5, expand=True)
-        browse_btn.place(x=111, y=88)
+        browse_btn = ttk.Button(ib_frame,text='Browse folder', command=lambda : filedialog.askdirectory())
+        browse_btn.pack(padx=10,pady=5,ipadx=5, ipady=5,side=tk.RIGHT)
+        #browse_btn.place(x=111, y=88)
 
         # Preview button that displays the selected camera.
-        preview_btn = ttk.Button(self, text="Preview", command=self.show_preview)
-        preview_btn.pack(ipadx=5, ipady=5, expand=True)
-        preview_btn.place(x=220, y=88)
+        preview_btn = ttk.Button(ib_frame, text="Preview", command=self.show_preview)
+        preview_btn.pack(padx=10,pady=5,ipadx=5, ipady=5,side=tk.RIGHT)
+        #preview_btn.place(x=220, y=88)
 
-        # Preview button that displays the selected camera.
-        start_server_button = ttk.Button(self, text="Start Server", command=self.start_server)
-        start_server_button.pack(ipadx=5, ipady=5, expand=True)
+    def server_widgets(self):
+        # Create a frame that contains all the elements
+        server_frame = tk.Frame(self,width=200, height=200)
+        server_frame.pack(fill=tk.BOTH, padx=10,pady=10)
+        # Upper frame
+        # - Containes Host, port (both on sopt_f, port on port_frame) and the button to start the server.
+        upper_f = tk.Frame(server_frame,width=200, height=100)
+        upper_f.pack(padx=5,pady=5,fill=tk.X)
+        sopt_f = tk.Frame(upper_f, width=150,height=100,bg="red")
+        sopt_f.pack(side=tk.LEFT,fill=tk.BOTH)
+
+        # Host label, host will remain constant
+        host_label = ttk.Label(sopt_f,text=f"HOST:\t{self.HOST}")
+        host_label.pack(fill=tk.X, padx=5, pady=5)
+
+        # Port label and entry, by default it is set to 8000
+        port_frame = tk.Frame(sopt_f,bg="yellow")
+        port_frame.pack(padx=5, pady=5,fill=tk.BOTH)
+        port_label = ttk.Label(port_frame,text="PORT:")
+        port_label.pack(padx=5,side=tk.LEFT)
+        port_entry = ttk.Entry(port_frame)
+        port_entry.insert(0,str(self.PORT))
+        port_entry.pack(side=tk.LEFT)
+
+        # Start server button
+        start_server_button = ttk.Button(upper_f, text="Start Server", command=self.start_server)
+        start_server_button.pack(padx=(50,0),ipadx=5, ipady=5, expand=True,side=tk.LEFT,fill=tk.X)
+        # Stop server button
+        stop_server_button = ttk.Button(server_frame, text="Stop server", command=self.stop_server)
+        stop_server_button.pack(padx=(50,0),ipadx=5, ipady=5, expand=True,fill=tk.X)
+
+        # Separator
+        separator = ttk.Separator(server_frame,orient="horizontal")
+        separator.pack(fill=tk.X)
+
+        # Server status labels
+        server_status_f = tk.Frame(server_frame,width=200, height=100)
+        server_status_f.pack(padx=5,pady=5,fill=tk.X)
+        # self.server_status_label = 
+        ss_cl = tk.Label(server_status_f,text="[SERVER STATUS]:")
+        ss_cl.pack(fill=tk.X,side=tk.LEFT)
+        self.server_status_text.set(SERVER_OFF)
+        server_status_label = tk.Label(server_status_f,textvariable=self.server_status_text)
+        server_status_label.pack(fill=tk.X,side=tk.LEFT)
+
+
+    def create_widgets(self):
+        self.image_widgets()
+        self.server_widgets()
 
 
     def save_image(self):
@@ -71,6 +130,10 @@ class Application(tk.Tk):
     def start_server(self):
         thread = threading.Thread(target=self.server.start,args=(self.selected_cam,self.channels))
         thread.start()
+        self.server_on = True
+        self.server_status_text.set(SERVER_ON)
 
     def stop_server(self):
+        self.server_on = False
         self.server.close()
+        self.server_status_text.set(SERVER_OFF)
