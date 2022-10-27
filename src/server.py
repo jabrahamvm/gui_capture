@@ -18,6 +18,7 @@ class Server():
         self.port = port
         self.on = False
         self.clients = []
+        self.path = ""
 
     def start(self, camera, channels):
         """Initializes a server..."""
@@ -34,8 +35,8 @@ class Server():
                 print("[ACTIVE CONNECTIONS]:",[client[1] for client in self.clients])
                 thread = threading.Thread(target=self.handle_client,args=(client, addr, camera, channels))
                 thread.start()
-            except Exception as e:
-                print(f"[SERVER CLOSED] The sever has been closed... {e}")
+            except:
+                print(f"[SERVER CLOSED] The sever has been closed...")
                 return
 
 
@@ -53,7 +54,7 @@ class Server():
             try:
                 msg = client.recv(HEADER).decode(FORMAT)
                 if msg == "Capture\r\n":
-                    utils.capture_image(camera=camera,channels=channels)
+                    utils.capture_image(camera=camera,channels=channels, path=self.path)
                     reply = "The image has been captured!"
                 else:
                     reply = f"You sent {msg}"
@@ -65,6 +66,9 @@ class Server():
                 self.clients.clear()
                 print(f"[{addr}] has diconnected.")
                 connected = False
+
+    def current_connections(self):
+        return self.clients
 
     def close(self):
         """ 
@@ -78,4 +82,7 @@ class Server():
             self.clients.clear()
         self.server.close()
         print(f"[CLOSING SERVER] Server has been closed...")
+    
+    def set_image_path(self, path):
+        self.path = path
 

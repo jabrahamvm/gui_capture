@@ -19,7 +19,7 @@ class Application(tk.Tk):
         self.channels = utils.find_cameras()
         self.HOST = "127.0.0.1"  # Standard loopback interface address (localhost)
         self.PORT = 8000         # Port to listen on (non-privileged ports are > 1023)
-        self.image_path = ""
+        self.image_path = tk.StringVar()
         self.server = Server(self.HOST,self.PORT)
         self.server_on = False
         self.server_status_text = tk.StringVar()
@@ -39,25 +39,28 @@ class Application(tk.Tk):
         cb_label.pack(padx=5, pady=5,side=tk.LEFT)
         # Combobox displaying available cameras
         cam_cb = ttk.Combobox(cb_frame, textvariable=self.selected_cam)
-        cam_cb.pack(fill=tk.X,padx=5, pady=5,side=tk.LEFT)
-        #cb_label.place(x=24, y=27)
+        cam_cb.pack(fill=tk.X,padx=5, pady=5,side=tk.LEFT, expand=True)
         # get values for the combobox
         cam_cb['values'] = list(self.channels.keys())
 
         # prevent typing a value
         cam_cb['state'] = 'readonly'
 
-        ib_frame = tk.Frame(image_frame, width=200)
-        ib_frame.pack(fill=tk.BOTH, padx=5,pady=3)
-        # Button to select where you want to save the image
-        browse_btn = ttk.Button(ib_frame,text='Browse folder', command=lambda : filedialog.askdirectory())
-        browse_btn.pack(padx=10,pady=5,ipadx=5, ipady=5,side=tk.RIGHT)
-        #browse_btn.place(x=111, y=88)
-
         # Preview button that displays the selected camera.
-        preview_btn = ttk.Button(ib_frame, text="Preview", command=self.show_preview)
-        preview_btn.pack(padx=10,pady=5,ipadx=5, ipady=5,side=tk.RIGHT)
-        #preview_btn.place(x=220, y=88)
+        preview_btn = ttk.Button(image_frame, text="Preview selected camera", command=self.show_preview)
+        preview_btn.pack(padx=1,pady=5,ipadx=3, ipady=3,expand=True,fill=tk.X)
+
+        aux_frame = tk.Frame(image_frame,width=200)
+        aux_frame.pack(fill=tk.X)
+        dp_label = tk.Label(aux_frame,text="Please select a folder path to save the image:")
+        dp_label.pack(fill=tk.X, expand=True, padx=5)
+        # Button to select where you want to save the image
+        ib_frame = tk.Frame(image_frame, width=200)
+        ib_frame.pack(padx=5,pady=3)
+        browse_btn = ttk.Button(ib_frame,text='Browse folder', command=self.set_directory)
+        browse_btn.pack(padx=10,pady=2,ipadx=5, ipady=3)
+        ip_label = tk.Label(ib_frame,textvariable=self.image_path)
+        ip_label.pack(fill=tk.X)
 
     def server_widgets(self):
         # Create a frame that contains all the elements
@@ -97,7 +100,6 @@ class Application(tk.Tk):
         # Server status labels
         server_status_f = tk.Frame(server_frame,width=200, height=100)
         server_status_f.pack(padx=5,pady=5,fill=tk.X)
-        # self.server_status_label = 
         ss_cl = tk.Label(server_status_f,text="[SERVER STATUS]:")
         ss_cl.pack(fill=tk.X,side=tk.LEFT)
         self.server_status_text.set(SERVER_OFF)
@@ -105,19 +107,14 @@ class Application(tk.Tk):
         server_status_label.pack(fill=tk.X,side=tk.LEFT)
 
 
+    def set_directory(self):
+        self.image_path.set(filedialog.askdirectory())
+        self.server.set_image_path(self.image_path.get() + "/")
+
     def create_widgets(self):
         self.image_widgets()
+        ttk.Separator(self,orient="horizontal").pack(fill=tk.X,padx=5)
         self.server_widgets()
-
-
-    def save_image(self):
-        if self.selected_cam.get() == "":
-            return
-        cap_tmp = cv2.VideoCapture(self.channels[self.selected_cam.get()])
-        _, frame = cap_tmp.read()
-        cv2.imwrite("image.jpg", frame)
-        # When everything done, release the capture
-        cap_tmp.release()
 
     # bind the selected value changes
     def show_preview(self):
