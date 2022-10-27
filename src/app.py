@@ -1,15 +1,15 @@
+from cmath import exp
 from http import server
 from re import U
 import tkinter as tk
 from tkinter import OFF, ON, ttk
-from tkinter import filedialog
-from tkinter import messagebox
+from tkinter import filedialog, messagebox
 import utils
 import threading
 import cv2
 from server import Server
 
-SERVER_OFF = "The server is off..."
+SERVER_OFF = "The server is offline..."
 SERVER_ON = "The server is listening at "
 SERVER_CONNECTED = " has connected to the server, waiting for commands..."
 
@@ -32,7 +32,7 @@ class Application(tk.Tk):
         self.create_widgets()
 
     def image_widgets(self):
-        image_frame = tk.Frame(self,width=200, height=200,bg="blue")
+        image_frame = tk.Frame(self,width=200, height=200)
         image_frame.pack(fill=tk.BOTH, padx=10,pady=10)
 
         # Combobox label
@@ -55,15 +55,16 @@ class Application(tk.Tk):
 
         aux_frame = tk.Frame(image_frame,width=200)
         aux_frame.pack(fill=tk.X)
-        dp_label = tk.Label(aux_frame,text="Please select a folder path to save the image:")
+        dp_label = tk.Label(aux_frame,text="Please select a folder path to save the image:",anchor="w",justify=tk.LEFT)
         dp_label.pack(fill=tk.X, expand=True, padx=5)
         # Button to select where you want to save the image
         ib_frame = tk.Frame(image_frame, width=200)
-        ib_frame.pack(padx=5,pady=3)
+        ib_frame.pack(padx=5,pady=3,fill=tk.X,expand=True)
         browse_btn = ttk.Button(ib_frame,text='Browse folder', command=self.set_directory)
-        browse_btn.pack(padx=10,pady=2,ipadx=5, ipady=3)
-        ip_label = tk.Label(ib_frame,textvariable=self.image_path)
-        ip_label.pack(fill=tk.X)
+        browse_btn.pack(pady=2,ipadx=5, ipady=3,side=tk.LEFT)
+        ipath_entry = ttk.Entry(ib_frame,textvariable=self.image_path)
+        ipath_entry.pack(side=tk.RIGHT,ipadx=5, ipady=5, pady=5,padx=5,fill=tk.X, expand=True)
+        ipath_entry.config(state="disabled")
 
     def server_widgets(self):
         # Create a frame that contains all the elements
@@ -149,12 +150,15 @@ class Application(tk.Tk):
             self.pop_up_window("Invalid Input", "The introduced PORT value is not a number.")
             return
 
-        thread = threading.Thread(target=self.server.start,args=(self.selected_cam,self.channels,self.HOST,int(self.PORT.get())))
+        thread = threading.Thread(target=self.server.start,args=(self.selected_cam,self.channels,self.HOST,port))
         thread.start()
         self.server_on = True
         self.server_status_text.set(SERVER_ON + f"{self.HOST}:{self.PORT.get()}")
 
     def stop_server(self):
+        if not self.server_on:
+            self.pop_up_window("Server OFF", "The server is already off")
+            return
         self.server_on = False
         self.server.close()
         self.server_status_text.set(SERVER_OFF)
