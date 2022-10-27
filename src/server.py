@@ -13,22 +13,20 @@ FORMAT = "utf-8"
 CONECTION_ESTABLISHED = "You are now connected to the server!"
 
 class Server():
-    def __init__(self, host = HOST, port = PORT):
-        self.host = host
-        self.port = port
+    def __init__(self):
         self.on = False
         self.clients = []
         self.path = ""
 
-    def start(self, camera, channels):
+    def start(self, camera, channels, host, port):
         """Initializes a server..."""
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server.bind((self.host, self.port))
+        self.server.bind((host, port))
         self.server.listen()
         self.on = True
         while True:
             try:
-                print(f"[LISTENING] Server is listening on {(self.host,self.port)}")
+                print(f"[LISTENING] Server is listening on {(host,port)}")
                 client, addr = self.server.accept()
                 client.send(CONECTION_ESTABLISHED.encode(FORMAT))
                 self.clients.append((client,addr))
@@ -38,6 +36,9 @@ class Server():
             except:
                 print(f"[SERVER CLOSED] The sever has been closed...")
                 return
+
+    def server_on(self):
+        return self.on
 
 
     def handle_client(self, client, addr, camera, channels):
