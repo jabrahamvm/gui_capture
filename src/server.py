@@ -1,8 +1,5 @@
-from ast import arg
-from audioop import add
 import socket
 import threading
-import cv2
 import utils
 
 HOST = "127.0.0.1"  # Standard loopback interface address (localhost)

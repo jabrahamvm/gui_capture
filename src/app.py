@@ -1,8 +1,5 @@
-from cmath import exp
-from http import server
-from re import U
 import tkinter as tk
-from tkinter import OFF, ON, ttk
+from tkinter import ttk
 from tkinter import filedialog, messagebox
 import utils
 import threading
@@ -11,7 +8,6 @@ from server import Server
 
 SERVER_OFF = "The server is offline..."
 SERVER_ON = "The server is listening at "
-SERVER_CONNECTED = " has connected to the server, waiting for commands..."
 
 class Application(tk.Tk):
     def __init__(self):
@@ -30,6 +26,7 @@ class Application(tk.Tk):
         self.resizable(False, False)
         self.title('Webcam test')
         self.create_widgets()
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
     def image_widgets(self):
         image_frame = tk.Frame(self,width=200, height=200)
@@ -165,3 +162,8 @@ class Application(tk.Tk):
     
     def pop_up_window(self,window_title,text):
         messagebox.showinfo(window_title,  text)
+
+    def on_closing(self):
+        if self.server_on:
+            self.stop_server()
+        self.destroy()
