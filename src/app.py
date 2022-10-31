@@ -6,22 +6,31 @@ import threading
 import cv2
 from server import Server
 
-SERVER_OFF = "The server is offline..."
+SERVER_OFF = "The server is currently offline."
 SERVER_ON = "The server is listening at "
 
 class Application(tk.Tk):
     def __init__(self):
         """ Initializes our application"""
         super().__init__()
+        # Variables to control camera selection
         self.selected_cam = tk.StringVar()
         self.channels = utils.find_cameras()
-        self.HOST = "127.0.0.1"  # Standard loopback interface address (localhost)
+        # Standard loopback interface address (localhost)
+        self.HOST = "127.0.0.1"
+        # Port to listen on (non-privileged ports are > 1023)
         self.PORT = tk.StringVar()
-        self.PORT.set("8000")        # Port to listen on (non-privileged ports are > 1023)
-        self.image_path = tk.StringVar()
+        self.PORT.set("8000") 
+        self.PORT.trace("w", lambda *args: None)
+
         self.server = Server()
         self.server_on = False
+
         self.server_status_text = tk.StringVar()
+        self.server_status_text.trace("w",lambda *args : None)
+        # Image path variable for the label
+        self.image_path = tk.StringVar()
+        # Tkinter default configurations
         self.geometry("400x400")
         self.resizable(False, False)
         self.title('Webcam test')
@@ -29,6 +38,7 @@ class Application(tk.Tk):
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
     def image_widgets(self):
+        """ Handles the initialization of all the image-related widgets. """
         image_frame = tk.Frame(self,width=200, height=200)
         image_frame.pack(fill=tk.BOTH, padx=10,pady=10)
 
@@ -64,6 +74,7 @@ class Application(tk.Tk):
         ipath_entry.config(state="disabled")
 
     def server_widgets(self):
+        """ Handles the initialization of all the server-related widgets. """
         # Create a frame that contains all the elements
         server_frame = tk.Frame(self,width=200, height=200)
         server_frame.pack(fill=tk.BOTH, padx=10,pady=10)
@@ -88,7 +99,6 @@ class Application(tk.Tk):
         port_label = ttk.Label(port_frame,text="PORT:")
         port_label.pack(padx=5,pady=5,ipadx=5, ipady=5,side=tk.LEFT)
         port_entry = ttk.Entry(port_frame,textvariable=self.PORT)
-        self.PORT.trace("w", lambda *args: print(self.PORT.get()))
         port_entry.pack(side=tk.LEFT,ipadx=5, ipady=5,padx=5, pady=5)
 
         buttons_f = tk.Frame(upper_f, width=150,height=100)
@@ -110,12 +120,11 @@ class Application(tk.Tk):
         server_status_f.pack(padx=5,pady=5,fill=tk.X)
         ss_cl = tk.Label(server_status_f,text="[SERVER STATUS]:")
         ss_cl.pack(fill=tk.X,side=tk.LEFT)
-        self.server_status_text.set(SERVER_OFF)
         server_status_label = tk.Label(server_status_f,textvariable=self.server_status_text)
         server_status_label.pack(fill=tk.X,side=tk.LEFT)
 
-
     def set_directory(self):
+        """Changes the path that the server uses to save the image"""
         self.image_path.set(filedialog.askdirectory())
         self.server.set_image_path(self.image_path.get() + "/")
 
@@ -147,7 +156,7 @@ class Application(tk.Tk):
             self.pop_up_window("Invalid Input", "The introduced PORT value is not a number.")
             return
 
-        thread = threading.Thread(target=self.server.start,args=(self.selected_cam,self.channels,self.HOST,port))
+        thread = threading.Thread(target=self.server.start,args=(self.selected_cam,self.channels,self.HOST,port, self.server_status_text))
         thread.start()
         self.server_on = True
         self.server_status_text.set(SERVER_ON + f"{self.HOST}:{self.PORT.get()}")

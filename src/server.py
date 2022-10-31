@@ -15,7 +15,7 @@ class Server():
         self.clients = []
         self.path = ""
 
-    def start(self, camera, channels, host, port):
+    def start(self, camera, channels, host, port,status_variable):
         """Initializes a server..."""
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind((host, port))
@@ -27,6 +27,7 @@ class Server():
                 client, addr = self.server.accept()
                 client.send(CONECTION_ESTABLISHED.encode(FORMAT))
                 self.clients.append((client,addr))
+                status_variable.set(f"The server has connected to XXXX")
                 print("[ACTIVE CONNECTIONS]:",[client[1] for client in self.clients])
                 thread = threading.Thread(target=self.handle_client,args=(client, addr, camera, channels))
                 thread.start()
@@ -36,7 +37,6 @@ class Server():
 
     def server_on(self):
         return self.on
-
 
     def handle_client(self, client, addr, camera, channels):
         """Handles connections to the server, it has a blocking fucntion, so it must be called in a thread.
@@ -65,9 +65,12 @@ class Server():
                 print(f"[{addr}] has diconnected.")
                 connected = False
 
-    def current_connections(self):
-        return self.clients
+    def connected(self):
+        return len(self.clients) > 0
 
+    def connection(self):
+        return f"{self.clients[0][1][0]}:{self.clients[0][1][1]}"
+    
     def close(self):
         """ 
             Closes the server and its connections.

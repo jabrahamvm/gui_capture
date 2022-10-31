@@ -62,12 +62,10 @@ def show_frames(cap):
         if not ret:
             print("Can't receive frame (stream end?). Exiting ...")
             break
-
         # Display the resulting frame
         cv2.imshow('frame', frame)
         if cv2.waitKey(1) == ord('q'):
             break
-
     # When everything done, release the capture
     cap.release()
     cv2.destroyAllWindows()
