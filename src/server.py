@@ -15,8 +15,14 @@ class Server():
         self.clients = []
         self.path = ""
 
-    def start(self, camera, channels, host, port,status_variable):
-        """Initializes a server..."""
+    def start(self, camera, channels, host, port, status_variable):
+        """Initializes a server at host:port...
+            - camera:
+            - channels:
+            - host:
+            - port:
+            - status_variable:
+        """
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind((host, port))
         self.server.listen()
@@ -27,7 +33,7 @@ class Server():
                 client, addr = self.server.accept()
                 client.send(CONECTION_ESTABLISHED.encode(FORMAT))
                 self.clients.append((client,addr))
-                status_variable.set(f"The server has connected to XXXX")
+                status_variable.set(f"The server has connected to AIMV")
                 print("[ACTIVE CONNECTIONS]:",[client[1] for client in self.clients])
                 thread = threading.Thread(target=self.handle_client,args=(client, addr, camera, channels))
                 thread.start()
@@ -53,12 +59,7 @@ class Server():
                 msg = client.recv(HEADER).decode(FORMAT)
                 if msg == "Capture\r\n":
                     utils.capture_image(camera=camera,channels=channels, path=self.path)
-                    reply = "The image has been captured!"
-                else:
-                    reply = f"You sent {msg}"
-                        
-                print(f"[{addr}] {msg}")
-                client.sendall(reply.encode(FORMAT))
+                    print(f"[{addr}] {msg}")
             except:
                 client.close()
                 self.clients.clear()
@@ -67,9 +68,6 @@ class Server():
 
     def connected(self):
         return len(self.clients) > 0
-
-    def connection(self):
-        return f"{self.clients[0][1][0]}:{self.clients[0][1][1]}"
     
     def close(self):
         """ 
@@ -86,4 +84,3 @@ class Server():
     
     def set_image_path(self, path):
         self.path = path
-

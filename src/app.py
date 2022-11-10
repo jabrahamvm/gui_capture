@@ -121,6 +121,7 @@ class Application(tk.Tk):
         ss_cl = tk.Label(server_status_f,text="[SERVER STATUS]:")
         ss_cl.pack(fill=tk.X,side=tk.LEFT)
         server_status_label = tk.Label(server_status_f,textvariable=self.server_status_text)
+        self.server_status_text.set(SERVER_OFF)
         server_status_label.pack(fill=tk.X,side=tk.LEFT)
 
     def set_directory(self):
@@ -138,6 +139,9 @@ class Application(tk.Tk):
         """ handle the cam changed event """
         if self.selected_cam.get() == "":
             self.pop_up_window("Camera not selected", "Please select a camera.")
+            return
+        if self.server_on:
+            self.pop_up_window("Server ON", "The server is waiting for requests to use the camera.")
             return
         cap = cv2.VideoCapture(self.channels[self.selected_cam.get()])
         utils.show_frames(cap)

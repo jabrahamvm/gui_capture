@@ -71,10 +71,19 @@ def show_frames(cap):
     cv2.destroyAllWindows()
 
 def capture_image(camera, channels,path=""):
-    print(path)
     if camera.get() == "":
-            return
-    cap_tmp = cv2.VideoCapture(channels[camera.get()])
+        return
+    HIGH_VALUE = 10000
+    WIDTH = HIGH_VALUE
+    HEIGHT = HIGH_VALUE
+
+    cap_tmp = cv2.VideoCapture(channels[camera.get()], cv2.CAP_DSHOW)
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    cap_tmp.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+    cap_tmp.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+    width = int(cap_tmp.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap_tmp.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    print(width,height)
     _, frame = cap_tmp.read()
     cv2.imwrite(path+"image.jpg", frame)
     # When everything done, release the capture
