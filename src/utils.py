@@ -1,6 +1,6 @@
 import cv2
 import wmi
-import time
+import imutils
 
 WIDTH = 10000
 HEIGHT = 10000
@@ -14,19 +14,19 @@ def find_cameras():
         dev_port = 0
         available_ports = []
         while is_working:
-            camera = cv2.VideoCapture(dev_port)
+            camera = cv2.VideoCapture(dev_port, cv2.CAP_DSHOW)
             if not camera.isOpened():
                 is_working = False
                 print("Port %s is not working." %dev_port)
             else:
-                is_reading, img = camera.read()
+                is_reading, _ = camera.read()
                 if is_reading:
                     print("Port %s is working" %(dev_port))
                     available_ports.append(dev_port)
                 else:
                     print("Port %s is present but does not reads." %(dev_port))
                     available_ports.append(dev_port)
-            dev_port +=1
+            dev_port += 1
         return available_ports
 
 
@@ -75,15 +75,5 @@ def show_frames(cap):
     cv2.destroyAllWindows()
 
 def capture_image(cap, path=""):
-    print(path)
-    # fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
-    start = time.time()
-    _, frame = cap.read()
-    end = time.time()
-    print(f"Read has taken {end - start} seconds...")
-    start = time.time()
-    cv2.imwrite(path+"image.png", frame)
-    end = time.time()
-    print(f"imread has taken {end - start} seconds...")
+    frame = cap.read()
+    cv2.imwrite(path + "image.jpg", frame)

@@ -6,10 +6,12 @@ import threading
 import cv2
 from server import Server
 
-SERVER_OFF = "The server is currently offline."
-SERVER_ON = "The server is listening at "
 
 class Application(tk.Tk):
+    """
+        Application that uses acts as a Server and waits for requests to take pictures with a 
+        selected camera device.
+    """
     def __init__(self):
         """ Initializes our application"""
         super().__init__()
@@ -23,17 +25,18 @@ class Application(tk.Tk):
         self.PORT.set("8000") 
         self.PORT.trace("w", lambda *args: None)
 
-        self.server = Server()
-        self.server_on = False
-
         self.server_status_text = tk.StringVar()
         self.server_status_text.trace("w",lambda *args : None)
+        
+        self.server = Server(status_variable=self.server_status_text)
+        self.server_on = False
+
         # Image path variable for the label
         self.image_path = tk.StringVar()
         # Tkinter default configurations
         self.geometry("400x400")
         self.resizable(False, False)
-        self.title('Webcam test')
+        self.title('Camera Server')
         self.create_widgets()
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
@@ -121,7 +124,6 @@ class Application(tk.Tk):
         ss_cl = tk.Label(server_status_f,text="[SERVER STATUS]:")
         ss_cl.pack(fill=tk.X,side=tk.LEFT)
         server_status_label = tk.Label(server_status_f,textvariable=self.server_status_text)
-        self.server_status_text.set(SERVER_OFF)
         server_status_label.pack(fill=tk.X,side=tk.LEFT)
 
     def set_directory(self):
@@ -143,6 +145,7 @@ class Application(tk.Tk):
         if self.server_on:
             self.pop_up_window("Server ON", "The server is waiting for requests to use the camera.")
             return
+        
         cap = cv2.VideoCapture(self.channels[self.selected_cam.get()])
         utils.show_frames(cap)
 
@@ -160,10 +163,9 @@ class Application(tk.Tk):
             self.pop_up_window("Invalid Input", "The introduced PORT value is not a number.")
             return
 
-        thread = threading.Thread(target=self.server.start,args=(self.selected_cam,self.channels,self.HOST,port, self.server_status_text))
+        thread = threading.Thread(name="Server listening for connections",target=self.server.start,args=(self.selected_cam,self.channels,self.HOST,port))
         thread.start()
         self.server_on = True
-        self.server_status_text.set(SERVER_ON + f"{self.HOST}:{self.PORT.get()}")
 
     def stop_server(self):
         if not self.server_on:
@@ -171,7 +173,6 @@ class Application(tk.Tk):
             return
         self.server_on = False
         self.server.close()
-        self.server_status_text.set(SERVER_OFF)
     
     def pop_up_window(self,window_title,text):
         messagebox.showinfo(window_title,  text)
