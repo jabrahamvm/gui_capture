@@ -7,19 +7,21 @@ HOST = "127.0.0.1"  # Standard loopback interface address (localhost)
 PORT = 8000
 HEADER = 1024
 FORMAT = "utf-8"
-SERVER_ON = "The server is online..."
-SERVER_OFF = "The server is currently offline."
-SERVER_CONN = "The server has connected to AIMV"
+SERVER_ON = "The server is ONLINE"
+SERVER_OFF = "The server is OFFLINE."
+SERVER_CONN = "The server has CONNECTED to AIMV"
 
 CONECTION_ESTABLISHED = "You are now connected to the server!"
 
 class Server():
-    def __init__(self, status_variable):
+    def __init__(self, status_displays):
         self.on = False
         self.clients = []
         self.path = ""
-        self.status_variable = status_variable
+        self.status_variable = status_displays[0]
         self.status_variable.set(SERVER_OFF)
+        self.exceptions_variable = status_displays[1]
+        self.exceptions_variable.set("")
 
     def start(self, camera, channels, host, port):
         """Initializes a server at host:port...
@@ -29,9 +31,22 @@ class Server():
             - port:
             - status_variable:
         """
-        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server.bind((host, port))
-        self.server.listen(1)
+        try:
+            self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        except socket.error as e:
+            #self.exceptions_variable.set(f"Error creating socket: {e}")
+            print(e)
+
+        try:
+            self.server.bind((host, port))
+        except socket.gaierror as e:
+            #self.exceptions_variable.set(f"Error with port: {e}")
+            print(e)
+        except socket.error as e:
+            #self.exceptions_variable.set(f"Connection error: {e}")
+            print(e)
+
+        self.server.listen()
         self.on = True
         self.cap = Camera(src=channels[camera.get()],resolution=(1920,1080))
         self.cap.start()
@@ -40,16 +55,11 @@ class Server():
         while True:
             try:
                 client, addr = self.server.accept()
-                #print("YES 1")
-                client.send(CONECTION_ESTABLISHED.encode(FORMAT))
-                #print("YES 2")
                 self.clients.append((client,addr))
-                #print("YES 3")
                 thread = threading.Thread(name="Handling cliente thread",target=self.handle_client,args=(client, addr))
                 thread.start()
-                #print("YES 4")
             except:
-                print(f"[SERVER CLOSED] The sever has been closed...")
+                #print(f"[SERVER CLOSED] The sever has been closed...")
                 self.close()
                 return
 
@@ -68,13 +78,12 @@ class Server():
         while connected:
             try:
                 msg = client.recv(HEADER).decode(FORMAT)
-                print(msg)
+                #print(msg)
                 if msg == "Capture\r\n":
-                    utils.capture_image(cap=self.cap, path=self.path)
-                else:
-                    utils.capture_image(cap=self.cap, path=self.path)
-                    
-            except:
+                    utils.capture_image(cap=self.cap, path=self.path)       
+            except socket.error as e:
+                if not self.on:
+                    return
                 client.close()
                 self.clients.clear()
                 self.status_variable.set(SERVER_ON)
@@ -87,7 +96,8 @@ class Server():
         """ 
             Closes the server and its connections.
         """
-        #print("NOOO")
+        if not self.on:
+            return
         self.cap.stop()
         self.on = False
         if len(self.clients) != 0:

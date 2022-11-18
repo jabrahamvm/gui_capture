@@ -16,3 +16,8 @@ class Camera(WebcamVideoStream):
         # initialize the variable used to indicate if the thread should
         # be stopped
         self.stopped = False
+    
+    def stop(self):
+        self.stopped = True
+        if self.grabbed:
+            self.stream.release()

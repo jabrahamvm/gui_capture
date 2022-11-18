@@ -3,7 +3,6 @@ from tkinter import ttk
 from tkinter import filedialog, messagebox
 import utils
 import threading
-import cv2
 from server import Server
 
 
@@ -27,8 +26,10 @@ class Application(tk.Tk):
 
         self.server_status_text = tk.StringVar()
         self.server_status_text.trace("w",lambda *args : None)
-        
-        self.server = Server(status_variable=self.server_status_text)
+        self.server_exceptions_text = tk.StringVar()
+        self.server_exceptions_text.trace("w",lambda *args : None)
+
+        self.server = Server(status_displays=(self.server_status_text, self.server_exceptions_text))
         self.server_on = False
 
         # Image path variable for the label
@@ -36,7 +37,7 @@ class Application(tk.Tk):
         # Tkinter default configurations
         self.geometry("400x400")
         self.resizable(False, False)
-        self.title('Camera Server')
+        self.title('AIMV Microscope Server')
         self.create_widgets()
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
@@ -48,7 +49,7 @@ class Application(tk.Tk):
         # Combobox label
         cb_frame = tk.Frame(image_frame, width=200)
         cb_frame.pack(fill=tk.BOTH, padx=5,pady=3)
-        cb_label = ttk.Label(cb_frame,text="Please select a webcam:")
+        cb_label = ttk.Label(cb_frame,text="Please select a camera:")
         cb_label.pack(padx=5, pady=5,side=tk.LEFT)
         # Combobox displaying available cameras
         cam_cb = ttk.Combobox(cb_frame, textvariable=self.selected_cam)
@@ -125,9 +126,14 @@ class Application(tk.Tk):
         ss_cl.pack(fill=tk.X,side=tk.LEFT)
         server_status_label = tk.Label(server_status_f,textvariable=self.server_status_text)
         server_status_label.pack(fill=tk.X,side=tk.LEFT)
+        #server_exceptions_label = tk.Label(server_status_f,textvariable=self.server_exceptions_text)
+        #server_exceptions_label.pack(fill=tk.X)
 
     def set_directory(self):
         """Changes the path that the server uses to save the image"""
+        if self.server_on:
+            self.pop_up_window("Server ONLINE", "The server is ONLINE")
+            return
         self.image_path.set(filedialog.askdirectory())
         self.server.set_image_path(self.image_path.get() + "/")
 
@@ -145,11 +151,12 @@ class Application(tk.Tk):
         if self.server_on:
             self.pop_up_window("Server ON", "The server is waiting for requests to use the camera.")
             return
-        
-        cap = cv2.VideoCapture(self.channels[self.selected_cam.get()])
-        utils.show_frames(cap)
+
+        utils.show_frames(self.channels,self.selected_cam.get())
 
     def start_server(self):
+        if self.server_on:
+            return
         if self.selected_cam.get() == "":
             self.pop_up_window("Camera not selected", "Please select a camera before turning on the server")
             return
@@ -169,7 +176,6 @@ class Application(tk.Tk):
 
     def stop_server(self):
         if not self.server_on:
-            self.pop_up_window("Server OFF", "The server is already off")
             return
         self.server_on = False
         self.server.close()
